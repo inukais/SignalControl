@@ -4,23 +4,43 @@ import java.util.*;
 class Simulation {
 	public static void main(String args[]){
 
-		int maxStep = 100, maxCar = 1000;
+		int maxStep = 20, maxCar = 30;
 
-		// 座標を指定して生成
+		// 信号の生成
 		Signal sig0 = new Signal(20, 20);
 		Signal sig1 = new Signal(40, 20);
 		Signal sig2 = new Signal(60, 20);
 
+		// 車の生成
 		Car[] c = new Car[maxCar];
 		for(int i=0; i<maxCar; i++)
 			c[i] = new Car(i);
+
+		// セルに車がいるか情報を取り扱う配列
+		Cell[][] cell = new Cell[81][];
+		for(int i=0; i<=80; i++){
+			cell[i] = new Cell[41];
+			for(int j=0; j<=40; j++){
+				cell[i][j] = new Cell(i,j);
+			}
+		}
 
 		// 1stepごとに進めていく
 		for(int step=0; step<maxStep; step++) {
 
 			// 車を動かす
 			for(int i=0; i<maxCar; i++){
-				if(!c[i].isArrived) c[i].go();
+
+				// 到着済みの車は無視
+				if(c[i].isArrived) continue;
+
+				// 車が次に行くセルを取得
+				ReturnValue v = c[i].goCheck();
+
+				// 本当に進んでよいか確認
+				boolean flag = ! cell[v.x][v.y].existing.contains(v.direction);
+				//System.out.printf("%d->[%d,%d]:%s\n", i, v.x, v.y, flag?"true":"false");
+				if(flag) c[i].go();
 			}
 
 			// 車の現在位置を出力する
@@ -57,6 +77,8 @@ class Car {
 		this.id = id;
 		this.genRoute();
 	}
+
+	// 次のセルの車の存否を確かめた上で進行
 	void right() { position[0] += speed; }
 	void left()  { position[0] -= speed; }
 	void up()    { position[1] += speed; }
@@ -66,6 +88,7 @@ class Car {
 	// 1stepだけで出来ることをやる
 	void go() {
 
+		// nextX, nextYは次に向かうべき交差点の場所
 		int nextX = route[phase+1][0], nextY = route[phase+1][1];
 
 		if      (position[0] < nextX) right();
@@ -74,8 +97,30 @@ class Car {
 		else if (position[1] > nextY) down();
 		else System.out.println("something wrong");
 
+		// 交差点に達したらphaseをカウントアップ
 		if (route[phase+1][0] == position[0] && route[phase+1][1] == position[1]) phase++;
 		if (arr[0] == position[0] && arr[1] == position[1]) isArrived = true;
+	}
+
+	ReturnValue goCheck() {
+		ReturnValue v = new ReturnValue();
+
+		// nextX, nextYは次に向かうべき交差点の場所
+		int nextX = route[phase+1][0], nextY = route[phase+1][1];
+
+		if (position[0] == nextX){
+			v.x = position[0];
+			v.y = (position[1] > nextY) ? position[1]-1 : position[1]+1;
+			v.direction = (position[1] > nextY) ? "down" : "up";
+		}
+		else if (position[1] == nextY){
+			v.x = (position[0] > nextX) ? position[0]-1 : position[0]+1;
+			v.y = position[1];
+			v.direction = (position[0] > nextY) ? "left" : "right";
+		}
+		else System.out.println("something wrong");
+
+		return v;
 	}
 
 	void genRoute() {
@@ -132,8 +177,36 @@ class Car {
 	}
 
 	void printLocation() {
-		System.out.printf("%d's pos: %d,%d | ", id, position[0], position[1]);
+		System.out.printf("car:%d pos:%d,%d\n", id, position[0], position[1]);
 	}
+}
+class ReturnValue {
+	int x, y;
+	String direction;
+}
+class Cell {
+	int x, y;
+	List<String> existing = new ArrayList<String>();
+
+	public Cell(int x,int y){
+		this.x = x;
+		this.y = y;
+	}
+
+	void up()   { existing.add("up");    }
+	void down() { existing.add("down");  }
+	void left() { existing.add("left");  }
+	void right(){ existing.add("right"); }
+
+	void upDel()   { existing.remove("up");    }
+	void downDel() { existing.remove("down");  }
+	void leftDel() { existing.remove("left");  }
+	void rightDel(){ existing.remove("right"); }
+
+	boolean upE()   { return existing.contains("up");    }
+	boolean downE() { return existing.contains("down");  }
+	boolean leftE() { return existing.contains("left");  }
+	boolean rightE(){ return existing.contains("right"); }
 
 }
 
