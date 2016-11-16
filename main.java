@@ -40,7 +40,10 @@ class Simulation {
 				// 本当に進んでよいか確認
 				boolean flag = ! cell[v.x][v.y].existing.contains(v.direction);
 				//System.out.printf("%d->[%d,%d]:%s\n", i, v.x, v.y, flag?"true":"false");
-				if(flag) c[i].go();
+				if(flag) {
+					v = c[i].go();
+					cell[v.x][v.y].nextExisting.add(v.direction); //車の存在情報を登録
+				}
 			}
 
 			// 車の現在位置を出力する
@@ -55,9 +58,18 @@ class Simulation {
 			//	if (c[i].isArrived) c[i] = null;
 			// }
 
+			// cellのnextExistingをexistingに移行
+			for(int i=0; i<=80; i++){
+				for(int j=0; j<=40; j++){
+					cell[i][j].existing = cell[i][j].nextExisting;
+					cell[i][j].nextExisting.clear();
+				}
+			}
+
 			//try{Thread.sleep(50);} catch(Exception e){}
 			//System.out.printf("\033[2J");
 		}
+		// 1stepごとの処理終了
 
 		//try {c[0].printLocation();}
 		//catch(NullPointerException e) {System.out.printf("already arrived\n");}
@@ -86,20 +98,26 @@ class Car {
 
 	// 目的地に向かって自動で進む
 	// 1stepだけで出来ることをやる
-	void go() {
+	ReturnValue go() {
+		ReturnValue v = new ReturnValue();
 
 		// nextX, nextYは次に向かうべき交差点の場所
 		int nextX = route[phase+1][0], nextY = route[phase+1][1];
 
-		if      (position[0] < nextX) right();
-		else if (position[0] > nextX) left();
-		else if (position[1] < nextY) up();
-		else if (position[1] > nextY) down();
+		if      (position[0] < nextX){ v.direction="right"; right();}
+		else if (position[0] > nextX){ v.direction="left";  left();}
+		else if (position[1] < nextY){ v.direction="up";    up();  }
+		else if (position[1] > nextY){ v.direction="down";  down();}
 		else System.out.println("something wrong");
 
 		// 交差点に達したらphaseをカウントアップ
 		if (route[phase+1][0] == position[0] && route[phase+1][1] == position[1]) phase++;
 		if (arr[0] == position[0] && arr[1] == position[1]) isArrived = true;
+
+		v.x = position[0];
+		v.y = position[1];
+
+		return v;
 	}
 
 	ReturnValue goCheck() {
@@ -187,6 +205,7 @@ class ReturnValue {
 class Cell {
 	int x, y;
 	List<String> existing = new ArrayList<String>();
+	List<String> nextExisting = new ArrayList<String>();
 
 	public Cell(int x,int y){
 		this.x = x;
