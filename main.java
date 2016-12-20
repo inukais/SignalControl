@@ -4,15 +4,16 @@ import java.util.*;
 class Simulation {
 
 	public static int MAXSTEP = 100;
-	public static int MAXCAR = 30;
+	public static int MAXCAR = 100;
 	public static int NPS = 5; //毎秒何台生成するか
 
 	public static void main(String args[]){
 
 		// 信号の生成
-		Signal sig0 = new Signal(20, 20);
-		Signal sig1 = new Signal(40, 20);
-		Signal sig2 = new Signal(60, 20);
+		Signal[] sig = new Signal[3];
+		sig[0] = new Signal(0, 20, 20);
+		sig[1] = new Signal(1, 40, 20);
+		sig[2] = new Signal(2, 60, 20);
 
 		// 車の生成
 		Car[] c = new Car[MAXCAR];
@@ -29,14 +30,13 @@ class Simulation {
 		}
 
 		// 1stepごとに進めていく
-		for(int step=0; step<MAXSTEP; step++)
-			doStep(c, cell, step);
-
-		//try {c[0].printLocation();}
-		//catch(NullPointerException e) {System.out.printf("already arrived\n");}
+		for(int step=0; step<MAXSTEP; step++) {
+			doCarStep(c, cell, step);
+			doSignalStep(sig, step);
+		}
 	}
 
-	public static void doStep(Car[] c, Cell[][] cell, int step) {
+	public static void doCarStep(Car[] c, Cell[][] cell, int step) {
 
 		// 車を動かす
 		for(int i=0; i<MAXCAR; i++){
@@ -53,9 +53,15 @@ class Simulation {
 			// 本当に進んでよいか確認
 			boolean flag = ! cell[v.x][v.y].existing.contains(v.direction);
 			//System.out.printf("%d->[%d,%d]:%s\n", i, v.x, v.y, flag?"true":"false");
+			//信号が赤等の事情もflagに加味する
 			if(flag) {
+				if(c[i].isInSec()) c[i].expedSec=true; //発進前に交差点通過済フラグ立てる
 				v = c[i].go();
 				cell[v.x][v.y].nextExisting.add(v.direction); //車の存在情報を登録
+			} else {
+				// 停車時間の測定
+				c[i].waitingLength2++;
+				if(!c[i].expedSec) c[i].waitingLength1++;
 			}
 		}
 
@@ -76,9 +82,22 @@ class Simulation {
 
 		//try{Thread.sleep(50);} catch(Exception e){}
 		//System.out.printf("\033[2J");
+	}
+	// end doCarStep()
+
+	public static void doSignalStep(Signal[] sig, int step) {
+		// 一定条件下でオフセット制御を提案する
+		// 現示を切り替える
+
+
+		// 信号の現在状態を出力する
+		System.out.printf("======== step %4d ========\n", step);
+		for(int i=0; i<3; i++)
+			sig[i].printStatus();
+		System.out.println("");
 
 	}
-	// end doStep()
+	// end doSignalStep()
 
 }
 
@@ -93,6 +112,11 @@ class Car {
 	boolean isGenerated = false;
 	boolean isArrived = false;
 
+	// 測定に用いる変数
+	boolean expedSec = false; //1つ目の交差点を通過したか
+	int waitingLength1 = 0; // 1つ目の交差点を通過するまでの停車時間
+	int waitingLength2 = 0; // 目的地に到着するまでの停車時間
+
 	public Car(int id, int genStep) {
 		this.id = id;
 		this.genStep = genStep;
@@ -104,6 +128,13 @@ class Car {
 	void left()  { position[0] -= speed; }
 	void up()    { position[1] += speed; }
 	void down()  { position[1] -= speed; }
+
+	// 交差点に居るか否かの判定
+	boolean isInSec() {
+		if(position[1]==20 && (position[0]==20 || position[0]==40 || position[0]==60))
+			return true;
+		else	return false;
+	}
 
 	// 目的地に向かって自動で進む
 	// 1stepだけで出来ることをやる
@@ -199,12 +230,11 @@ class Car {
 			flag = route[i][0]!=arr[0] || route[i][1]!=arr[1];
 			i++;
 		}
-		// genRoute終了
-
 	}
+	// genRoute()終了
 
 	void printLocation() {
-		System.out.printf("[%3d]:(%2d,%2d) ", id, position[0], position[1]);
+		System.out.printf("[%3d]:(%2d,%2d,%2d,%2d) ", id, position[0], position[1], waitingLength1, waitingLength2);
 		if (id%6 == 5) System.out.println();
 	}
 }
@@ -240,14 +270,22 @@ class Cell {
 }
 
 class Signal {
-	int split0, split1, status;
+	// 表2に従い，初期値を代入
+	double split0 = 0.5, split1 = 0.5;
+	int cycle = 50, clearance = 5;
+	int offset = 0;
+
+	// 0:clearance，1:第1現示，2:第2現示，3:第1現示右折，4:第2現示右折
+	int status=0;
+	int id;
 	int[] position = new int[2];
 	int[] rightTurnLane = new int[2];
 	int mode = 1; //1:独立、2:起点、3:従属
 	//従属モードにおける起点の信号機の番号。独立or起点のときは-1
-	int boss = -1;
+	int parent = -1;
 
-	public Signal(int x, int y) {
+	public Signal(int id, int x, int y) {
+		this.id = id;
 		this.position[0] = x;
 		this.position[1] = y;
 		this.rightTurnLane[0] = this.rightTurnLane[1] = 0;
@@ -261,9 +299,13 @@ class Signal {
 	public void considerSuggestion(int step, int e, int cycle, int suggester) {
 		if (step<=e*cycle || step>=(1-e)*cycle){
 			this.mode = 3;
-			this.boss = suggester;
+			this.parent = suggester;
 		}
 	}
 
+	public void printStatus() {
+		System.out.printf("[%d] mode:%d, parent:%d\n",id,mode,parent);
+
+	}
 }
 
