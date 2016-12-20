@@ -2,9 +2,12 @@ import java.io.*;
 import java.util.*;
 
 class Simulation {
-	public static void main(String args[]){
 
-		int maxStep = 20, maxCar = 30;
+	public static int MAXSTEP = 100;
+	public static int MAXCAR = 30;
+	public static int NPS = 5; //毎秒何台生成するか
+
+	public static void main(String args[]){
 
 		// 信号の生成
 		Signal sig0 = new Signal(20, 20);
@@ -12,9 +15,9 @@ class Simulation {
 		Signal sig2 = new Signal(60, 20);
 
 		// 車の生成
-		Car[] c = new Car[maxCar];
-		for(int i=0; i<maxCar; i++)
-			c[i] = new Car(i);
+		Car[] c = new Car[MAXCAR];
+		for(int i=0; i<MAXCAR; i++)
+			c[i] = new Car(i, i/NPS); // 第二引数：何step目に生成されるか
 
 		// セルに車がいるか情報を取り扱う配列
 		Cell[][] cell = new Cell[81][];
@@ -26,54 +29,57 @@ class Simulation {
 		}
 
 		// 1stepごとに進めていく
-		for(int step=0; step<maxStep; step++) {
-
-			// 車を動かす
-			for(int i=0; i<maxCar; i++){
-
-				// 到着済みの車は無視
-				if(c[i].isArrived) continue;
-
-				// 車が次に行くセルを取得
-				ReturnValue v = c[i].goCheck();
-
-				// 本当に進んでよいか確認
-				boolean flag = ! cell[v.x][v.y].existing.contains(v.direction);
-				//System.out.printf("%d->[%d,%d]:%s\n", i, v.x, v.y, flag?"true":"false");
-				if(flag) {
-					v = c[i].go();
-					cell[v.x][v.y].nextExisting.add(v.direction); //車の存在情報を登録
-				}
-			}
-
-			// 車の現在位置を出力する
-			System.out.printf("======== step %d ========\n", step);
-			for(int i=0; i<maxCar; i++){
-				c[i].printLocation();
-			}
-			System.out.println("");
-
-			// 到着した車を消滅させる
-			// for(int i=0; i<maxCar; i++){
-			//	if (c[i].isArrived) c[i] = null;
-			// }
-
-			// cellのnextExistingをexistingに移行
-			for(int i=0; i<=80; i++){
-				for(int j=0; j<=40; j++){
-					cell[i][j].existing = cell[i][j].nextExisting;
-					cell[i][j].nextExisting.clear();
-				}
-			}
-
-			//try{Thread.sleep(50);} catch(Exception e){}
-			//System.out.printf("\033[2J");
-		}
-		// 1stepごとの処理終了
+		for(int step=0; step<MAXSTEP; step++)
+			doStep(c, cell, step);
 
 		//try {c[0].printLocation();}
 		//catch(NullPointerException e) {System.out.printf("already arrived\n");}
 	}
+
+	public static void doStep(Car[] c, Cell[][] cell, int step) {
+
+		// 車を動かす
+		for(int i=0; i<MAXCAR; i++){
+
+			//今回のステップで生成されることになっている車を動かし始める
+			if(step == c[i].genStep) c[i].isGenerated = true;
+
+			// 到着済み or 未生成の車は無視
+			if(c[i].isArrived || !c[i].isGenerated) continue;
+
+			// 車が次に行くセルを取得
+			ReturnValue v = c[i].goCheck();
+
+			// 本当に進んでよいか確認
+			boolean flag = ! cell[v.x][v.y].existing.contains(v.direction);
+			//System.out.printf("%d->[%d,%d]:%s\n", i, v.x, v.y, flag?"true":"false");
+			if(flag) {
+				v = c[i].go();
+				cell[v.x][v.y].nextExisting.add(v.direction); //車の存在情報を登録
+			}
+		}
+
+		// 車の現在位置を出力する
+		System.out.printf("======== step %4d ========\n", step);
+		for(int i=0; i<MAXCAR; i++){
+			c[i].printLocation();
+		}
+		System.out.println("");
+
+		// cellのnextExistingをexistingに移行
+		for(int i=0; i<=80; i++){
+			for(int j=0; j<=40; j++){
+				cell[i][j].existing = cell[i][j].nextExisting;
+				cell[i][j].nextExisting.clear();
+			}
+		}
+
+		//try{Thread.sleep(50);} catch(Exception e){}
+		//System.out.printf("\033[2J");
+
+	}
+	// end doStep()
+
 }
 
 class Car {
@@ -83,10 +89,13 @@ class Car {
 	int[] position = new int[2];
 	int[][] route = new int[6][];
 	int phase = 0; // 経路の何段階目か
+	int genStep = 0; // 何step目に生成されるか
+	boolean isGenerated = false;
 	boolean isArrived = false;
 
-	public Car(int id) {
+	public Car(int id, int genStep) {
 		this.id = id;
+		this.genStep = genStep;
 		this.genRoute();
 	}
 
@@ -190,12 +199,13 @@ class Car {
 			flag = route[i][0]!=arr[0] || route[i][1]!=arr[1];
 			i++;
 		}
-		// ルートの生成終了
+		// genRoute終了
 
 	}
 
 	void printLocation() {
-		System.out.printf("car:%d pos:%d,%d\n", id, position[0], position[1]);
+		System.out.printf("[%3d]:(%2d,%2d) ", id, position[0], position[1]);
+		if (id%6 == 5) System.out.println();
 	}
 }
 class ReturnValue {
@@ -230,14 +240,30 @@ class Cell {
 }
 
 class Signal {
-	int split0, split1, mode, status;
+	int split0, split1, status;
 	int[] position = new int[2];
 	int[] rightTurnLane = new int[2];
+	int mode = 1; //1:独立、2:起点、3:従属
+	//従属モードにおける起点の信号機の番号。独立or起点のときは-1
+	int boss = -1;
 
 	public Signal(int x, int y) {
 		this.position[0] = x;
 		this.position[1] = y;
 		this.rightTurnLane[0] = this.rightTurnLane[1] = 0;
 	}
+
+	public void suggestOffset(int i) {
+		// if pij>beta or pji>beta then suggestOffset
+	}
+
+	// 従属モードになるか決める（(2)式）
+	public void considerSuggestion(int step, int e, int cycle, int suggester) {
+		if (step<=e*cycle || step>=(1-e)*cycle){
+			this.mode = 3;
+			this.boss = suggester;
+		}
+	}
+
 }
 
