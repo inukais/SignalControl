@@ -89,6 +89,11 @@ class Simulation {
 		// 一定条件下でオフセット制御を提案する
 		// 現示を切り替える
 
+		for (int i=0; i<3; i++){
+			// 現示に変更がなければincrement
+			if (sig[i].changeStatus())
+				sig[i].presentLength++;
+		}
 
 		// 信号の現在状態を出力する
 		System.out.printf("======== step %4d ========\n", step);
@@ -277,6 +282,7 @@ class Signal {
 
 	// 0:clearance，1:第1現示，2:第2現示，3:第1現示右折，4:第2現示右折
 	int status=0;
+	int presentLength=0; // 今の現示が何step続いているか
 	int id;
 	int[] position = new int[2];
 	int[] rightTurnLane = new int[2];
@@ -289,6 +295,13 @@ class Signal {
 		this.position[0] = x;
 		this.position[1] = y;
 		this.rightTurnLane[0] = this.rightTurnLane[1] = 0;
+	}
+
+	public boolean changeStatus() {
+		// cycle等を検討し、現示を変える必要があるか判断
+
+		// 現示が変わったらtrueを返す
+		return true;
 	}
 
 	public void suggestOffset(int i) {
@@ -304,7 +317,7 @@ class Signal {
 	}
 
 	public void printStatus() {
-		System.out.printf("[%d] mode:%d, parent:%d\n",id,mode,parent);
+		System.out.printf("[%d] mode:%d, parent:%d, status:%d, presentLength:%d\n",id,mode,parent, status, presentLength);
 
 	}
 }
