@@ -1,3 +1,4 @@
+import java.util.*;
 
 class Car {
 	int id, speed = 1;
@@ -74,7 +75,7 @@ class Car {
 			v.y = position[1];
 			v.direction = (position[0] > nextY) ? "left" : "right";
 		}
-		else System.out.println("something wrong");
+		else System.out.println("something wrong. ## car.java #1");
 
 		return v;
 	}

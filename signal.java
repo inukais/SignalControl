@@ -33,7 +33,7 @@ class Signal {
 		this.rightTurnLane[0] = this.rightTurnLane[1] = 0;
 	}
 
-	public boolean changeStatus() {
+	public void changeStatus() {
 		// cycle等を検討し、現示を変える必要があるか判断
 		switch (status){
 			case 0: //clearance
@@ -51,8 +51,8 @@ class Signal {
 		// if pij>beta or pji>beta then suggestOffset
 
 
-		// 現示が変わったらtrueを返す
-		return true;
+		//最後にインクリメント（0に戻ってもインクリメント）
+		this.presentLength++;
 	}
 
 	public void suggestOffset(int i) {

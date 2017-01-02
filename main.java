@@ -81,9 +81,6 @@ class Simulation {
 				cell[i][j].nextExisting.clear();
 			}
 		}
-
-		//try{Thread.sleep(50);} catch(Exception e){}
-		//System.out.printf("\033[2J");
 	}
 	// end doCarStep()
 
@@ -92,9 +89,7 @@ class Simulation {
 		// 現示を切り替える
 
 		for (int i=0; i<3; i++){
-			// 現示に変更がなければincrement
-			if (sig[i].changeStatus())
-				sig[i].presentLength++;
+			sig[i].changeStatus(); //信号ごとのstep毎のルーチンワーク
 		}
 
 		// 信号の現在状態を出力する
