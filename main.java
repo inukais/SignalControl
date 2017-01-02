@@ -6,6 +6,8 @@ class Simulation {
 	public static int MAXSTEP = 100;
 	public static int MAXCAR = 100;
 	public static int NPS = 5; //毎秒何台生成するか
+	public static boolean PRINT_CAR = false;
+	public static boolean PRINT_SIG = true;
 
 	public static void main(String args[]){
 
@@ -66,12 +68,12 @@ class Simulation {
 		}
 
 		// 車の現在位置を出力する
-		System.out.printf("======== step %4d ========\n", step);
-		for(int i=0; i<MAXCAR; i++){
-			c[i].printLocation();
+		if (PRINT_CAR) {
+			System.out.printf("======== step %4d ========\n", step);
+			for(int i=0; i<MAXCAR; i++)
+				c[i].printLocation();
+			System.out.println("");
 		}
-		System.out.println("");
-
 		// cellのnextExistingをexistingに移行
 		for(int i=0; i<=80; i++){
 			for(int j=0; j<=40; j++){
@@ -96,11 +98,12 @@ class Simulation {
 		}
 
 		// 信号の現在状態を出力する
-		System.out.printf("======== step %4d ========\n", step);
-		for(int i=0; i<3; i++)
-			sig[i].printStatus();
-		System.out.println("");
-
+		if (PRINT_SIG) {
+			System.out.printf("======== step %4d ========\n", step);
+			for(int i=0; i<3; i++)
+				sig[i].printStatus();
+			System.out.println("");
+		}
 	}
 	// end doSignalStep()
 
@@ -209,9 +212,6 @@ class Car {
 		int i=1, x, y;
 		boolean flag = true;
 
-		//System.out.printf("dep: %d,%d arr: %d,%d\n",
-		//dep[0], dep[1], arr[0], arr[1] );
-
 		while(flag) {
 			x = route[i-1][0];
 			y = route[i-1][1];
@@ -275,6 +275,18 @@ class Cell {
 }
 
 class Signal {
+	public double GANMA = 1.5;
+	public double DELTA = 1.1;
+	public double EPSILON = 0.2;
+	public int X = 3; // 右折レーンに溜まれる台数
+	public double P = 0.6;
+	public double Q = 0.5;
+	public double R = 0.3;
+
+	double cap_i = 0.45;
+	double alpha = 0.25 * cap_i; // cap_iが変わったら、あわせて変更
+	double beta  = 0.125* cap_i;
+
 	// 表2に従い，初期値を代入
 	double split0 = 0.5, split1 = 0.5;
 	int cycle = 50, clearance = 5;
@@ -299,25 +311,39 @@ class Signal {
 
 	public boolean changeStatus() {
 		// cycle等を検討し、現示を変える必要があるか判断
+		switch (status){
+			case 0: //clearance
+				if(presentLength>=clearance){ //第１現示にする
+					status=1;
+					presentLength=0;
+				}
+			case 1: //第１現示
+
+			case 2:
+
+			case 3:
+
+		}
+		// if pij>beta or pji>beta then suggestOffset
+
 
 		// 現示が変わったらtrueを返す
 		return true;
 	}
 
 	public void suggestOffset(int i) {
-		// if pij>beta or pji>beta then suggestOffset
 	}
 
 	// 従属モードになるか決める（(2)式）
 	public void considerSuggestion(int step, int e, int cycle, int suggester) {
-		if (step<=e*cycle || step>=(1-e)*cycle){
+		if (step<=EPSILON*cycle || step>=(1-EPSILON)*cycle){
 			this.mode = 3;
 			this.parent = suggester;
 		}
 	}
 
 	public void printStatus() {
-		System.out.printf("[%d] mode:%d, parent:%d, status:%d, presentLength:%d\n",id,mode,parent, status, presentLength);
+		System.out.printf("[%d] mode:%d, parent:%d, status:%d, presentLength:%d\n", id, mode, parent, status, presentLength);
 
 	}
 }
