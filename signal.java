@@ -37,6 +37,9 @@ class Signal {
 	int parent = -1;
 	boolean isRightMode = false; //右折現示があるか
 
+	int p1 = 0; // 現示1方向の交通量
+	int p2 = 0; // 現示2方向の交通量
+
 	int[] time = new int[6];
 
 	public Signal(int id, int x, int y) {
@@ -61,8 +64,8 @@ class Signal {
 			do { status++; if(status==6) status=0; } while(time[status]==0);
 			presentLength=0;
 		}
-
-		if(status==0) reconsider();
+		// サイクルが1周したときは諸々の値を計算し直す
+		if(presentLength==0 && status==0) reconsider();
 
 		// if pij>beta or pji>beta then suggestOffset
 
@@ -72,6 +75,8 @@ class Signal {
 
 	public void reconsider(){
 		// 振り出しに戻った(status==0)のでサイクル長の見直しをする
+
+		p1 = p2 = 0; //交通量を0に戻す
 
 		double lambda = 0.0; // 交差点飽和度：暫定
 		cycle = (int)((1.5 * clearance + 5.0) / (1.0-lambda));
@@ -97,30 +102,35 @@ class Signal {
 	}
 
 	public void printStatus() {
-		System.out.printf("[%d] mode:%d, parent:%d, status:%d, presentLength:%d\n", id, mode, parent, status, presentLength);
-
+		System.out.printf("[%d] mode:%d, parent:%d, status:%d, presentLength:%d, p1:%d, p2:%d\n",
+			id, mode, parent, status, presentLength, p1, p2);
 	}
 
 	// 車に，進んでいいか教えてあげる
-	public boolean isAllowed(String nowDirection, String nextDirection){
+	public boolean isAllowed(String nowDirection, String nextDirection, Car c){
+		boolean flag;
 
 		// 第2現示で進む車 (右折現示あり)
-		if(nowDirection == "left"){
-			if(isRightMode && nextDirection == "up")
-				{ if(status==3 || status==5) return true; else return false; }
-			else
-				{ if(status==4) return true; else return false; }
-		}
-		else if(nowDirection == "right"){
-			if(isRightMode && nextDirection == "down")
-				{ if(status==3 || status==5) return true; else return false; }
-			else
-				{ if(status==4) return true; else return false; }
-		}
+		if(nowDirection == "left")
+			flag = (isRightMode && nextDirection == "up")
+				? (status==3 || status==5) : (status==4);
+
+		else if(nowDirection == "right")
+			flag = (isRightMode && nextDirection == "down")
+				? (status==3 || status==5) : (status==4);
 
 		// 第1現示で進む車
-		else
-			{ if(status==1) return true; else return false; }
+		else flag = (status==1);
+
+		// 交通量の計測
+		if(flag){
+			if(nowDirection == "left" || nowDirection == "right") p2++;
+			else p1++;
+			System.out.print(nowDirection);
+			System.out.printf(" sigId:%d, carId:%d (%d,%d)\n",id,c.id,c.position[0],c.position[1]);
+		}
+
+		return flag;
 	}
 
 }

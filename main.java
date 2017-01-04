@@ -6,8 +6,8 @@ class Simulation {
 	public static int MAXSTEP = 100;
 	public static int MAXCAR = 100;
 	public static int NPS = 5; //毎秒何台生成するか
-	public static boolean PRINT_CAR = true;
-	public static boolean PRINT_SIG = false;
+	public static boolean PRINT_CAR = false;
+	public static boolean PRINT_SIG = true;
 
 	public static void main(String args[]){
 
@@ -33,8 +33,8 @@ class Simulation {
 
 		// 1stepごとに進めていく
 		for(int step=0; step<MAXSTEP; step++) {
-			doCarStep(c, sig, cell, step);
 			doSignalStep(sig, step);
+			doCarStep(c, sig, cell, step);
 		}
 	}
 
@@ -58,8 +58,8 @@ class Simulation {
 			// 本当に進んでよいか確認 (信号が赤でないか)
 			int sigNum = c[i].isInSec();
 			if(sigNum>-1)
-				// isAllowed()の引数は，これまでの進行方向，これからの進行方向
-				flag = flag && sig[sigNum].isAllowed(c[i].direction, v.direction);
+				// isAllowed()の引数は，これまでの進行方向，これからの進行方向，車のid
+				flag = flag && sig[sigNum].isAllowed(c[i].direction, v.direction, c[i]);
 
 			//System.out.printf("%d->[%d,%d]:%s\n", i, v.x, v.y, flag?"true":"false");
 			if(flag) {
@@ -70,6 +70,7 @@ class Simulation {
 				// 停車時間の測定
 				c[i].waitingLength2++;
 				if(!c[i].expedSec) c[i].waitingLength1++;
+				cell[c[i].position[0]][c[i].position[1]].nextExisting.add(c[i].direction); //車の存在情報を登録
 			}
 		}
 
