@@ -42,7 +42,10 @@ class Signal {
 					presentLength=0;
 				}
 			case 1: //第１現示
-
+				if(presentLength>= cycle*split0-clearance){
+					status=0;
+					presentLength=0;
+				}
 			case 2:
 
 			case 3:
