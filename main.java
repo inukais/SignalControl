@@ -6,8 +6,8 @@ class Simulation {
 	public static int MAXSTEP = 100;
 	public static int MAXCAR = 100;
 	public static int NPS = 5; //毎秒何台生成するか
-	public static boolean PRINT_CAR = false;
-	public static boolean PRINT_SIG = true;
+	public static boolean PRINT_CAR = true;
+	public static boolean PRINT_SIG = false;
 
 	public static void main(String args[]){
 
@@ -33,12 +33,12 @@ class Simulation {
 
 		// 1stepごとに進めていく
 		for(int step=0; step<MAXSTEP; step++) {
-			doCarStep(c, cell, step);
+			doCarStep(c, sig, cell, step);
 			doSignalStep(sig, step);
 		}
 	}
 
-	public static void doCarStep(Car[] c, Cell[][] cell, int step) {
+	public static void doCarStep(Car[] c, Signal[] sig, Cell[][] cell, int step) {
 
 		// 車を動かす
 		for(int i=0; i<MAXCAR; i++){
@@ -52,12 +52,18 @@ class Simulation {
 			// 車が次に行くセルを取得
 			ReturnValue v = c[i].goCheck();
 
-			// 本当に進んでよいか確認
+			// 本当に進んでよいか確認 (次のセルに車が居ないか)
 			boolean flag = ! cell[v.x][v.y].existing.contains(v.direction);
+
+			// 本当に進んでよいか確認 (信号が赤でないか)
+			int sigNum = c[i].isInSec();
+			if(sigNum>-1)
+				// isAllowed()の引数は，これまでの進行方向，これからの進行方向
+				flag = flag && sig[sigNum].isAllowed(c[i].direction, v.direction);
+
 			//System.out.printf("%d->[%d,%d]:%s\n", i, v.x, v.y, flag?"true":"false");
-			//信号が赤等の事情もflagに加味する
 			if(flag) {
-				if(c[i].isInSec()) c[i].expedSec=true; //発進前に交差点通過済フラグ立てる
+				if(sigNum>-1) c[i].expedSec=true; //交差点に居るのであれば，発進前に交差点通過済フラグ立てる
 				v = c[i].go();
 				cell[v.x][v.y].nextExisting.add(v.direction); //車の存在情報を登録
 			} else {
@@ -118,6 +124,7 @@ class Cell {
 		this.y = y;
 	}
 
+	/*
 	void up()   { existing.add("up");    }
 	void down() { existing.add("down");  }
 	void left() { existing.add("left");  }
@@ -132,7 +139,6 @@ class Cell {
 	boolean downE() { return existing.contains("down");  }
 	boolean leftE() { return existing.contains("left");  }
 	boolean rightE(){ return existing.contains("right"); }
+	*/
 
 }
-
-

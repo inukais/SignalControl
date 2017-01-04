@@ -5,6 +5,7 @@ class Car {
 	int[] dep = new int[2];
 	int[] arr = new int[2];
 	int[] position = new int[2];
+	String direction; // どちらの方向に進んでいるか
 	int[][] route = new int[6][];
 	int phase = 0; // 経路の何段階目か
 	int genStep = 0; // 何step目に生成されるか
@@ -29,10 +30,11 @@ class Car {
 	void down()  { position[1] -= speed; }
 
 	// 交差点に居るか否かの判定
-	boolean isInSec() {
-		if(position[1]==20 && (position[0]==20 || position[0]==40 || position[0]==60))
-			return true;
-		else	return false;
+	int isInSec() {
+		if(position[1]==20 && position[0]==20) return 0;
+		else if(position[1]==20 && position[0]==40) return 1;
+		else if(position[1]==20 && position[0]==60) return 2;
+		else return -1;
 	}
 
 	// 目的地に向かって自動で進む
@@ -43,10 +45,10 @@ class Car {
 		// nextX, nextYは次に向かうべき交差点の場所
 		int nextX = route[phase+1][0], nextY = route[phase+1][1];
 
-		if      (position[0] < nextX){ v.direction="right"; right();}
-		else if (position[0] > nextX){ v.direction="left";  left();}
-		else if (position[1] < nextY){ v.direction="up";    up();  }
-		else if (position[1] > nextY){ v.direction="down";  down();}
+		if      (position[0] < nextX){ this.direction = v.direction="right"; right();}
+		else if (position[0] > nextX){ this.direction = v.direction="left";  left();}
+		else if (position[1] < nextY){ this.direction = v.direction="up";    up();  }
+		else if (position[1] > nextY){ this.direction = v.direction="down";  down();}
 		else System.out.println("something wrong");
 
 		// 交差点に達したらphaseをカウントアップ
