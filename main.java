@@ -3,11 +3,15 @@ import java.util.*;
 
 class Simulation {
 
-	public static int MAXSTEP = 100;
-	public static int MAXCAR = 100;
-	public static int NPS = 5; //毎秒何台生成するか
+	public static int MAXSTEP = 50000;
+	public static int MAXCAR = 5000;
+	public static int NPS = 1; //毎step何台生成するか
 	public static boolean PRINT_CAR = false;
-	public static boolean PRINT_SIG = true;
+	public static boolean PRINT_SIG = false;
+	public static boolean PRINT_DATA = true;
+	// 自動車生成確率の比
+	// 1: 横方向の交通量多　2: 差がない　3: 縦方向の交通量多
+	public static int PROBABILITY = 1;
 
 	public static void main(String args[]){
 
@@ -26,9 +30,7 @@ class Simulation {
 		Cell[][] cell = new Cell[81][];
 		for(int i=0; i<=80; i++){
 			cell[i] = new Cell[41];
-			for(int j=0; j<=40; j++){
-				cell[i][j] = new Cell(i,j);
-			}
+			for(int j=0; j<=40; j++) cell[i][j] = new Cell(i,j);
 		}
 
 		// 1stepごとに進めていく
@@ -65,6 +67,7 @@ class Simulation {
 			if(flag) {
 				if(sigNum>-1) c[i].expedSec=true; //交差点に居るのであれば，発進前に交差点通過済フラグ立てる
 				v = c[i].go();
+				if(c[i].isArrived && PRINT_DATA) record(c[i], step); // 到着した車について実験結果を記録
 				cell[v.x][v.y].nextExisting.add(v.direction); //車の存在情報を登録
 			} else {
 				// 停車時間の測定
@@ -109,6 +112,24 @@ class Simulation {
 	}
 	// end doSignalStep()
 
+	// 実験結果の記録
+	public static void record(Car c, int step) {
+		Data d = new Data(c.id, step, c.waitingLength1, c.waitingLength2);
+		System.out.printf("%d,%d,%d,%d\n",d.id,d.es,d.w1,d.w2);
+	}
+
+}
+// end Simulation
+
+class Data {
+	int id, es, w1, w2;
+
+	public Data(int id, int endStep, int waitingLength1, int waitingLength2){
+		this.id = id;
+		this.es = endStep;
+		this.w1 = waitingLength1;
+		this.w2 = waitingLength2;
+	}
 }
 
 class ReturnValue {

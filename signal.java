@@ -78,7 +78,7 @@ class Signal {
 
 		p1 = p2 = 0; //交通量を0に戻す
 
-		double lambda = 0.0; // 交差点飽和度：暫定
+		double lambda = 0.9; // 交差点飽和度：暫定
 		cycle = (int)((1.5 * clearance + 5.0) / (1.0-lambda));
 
 		// 独立モードの現示維持時間(右折なし)
@@ -126,8 +126,8 @@ class Signal {
 		if(flag){
 			if(nowDirection == "left" || nowDirection == "right") p2++;
 			else p1++;
-			System.out.print(nowDirection);
-			System.out.printf(" sigId:%d, carId:%d (%d,%d)\n",id,c.id,c.position[0],c.position[1]);
+			//System.out.print(nowDirection);
+			//System.out.printf(" sigId:%d, carId:%d (%d,%d)\n",id,c.id,c.position[0],c.position[1]);
 		}
 
 		return flag;
