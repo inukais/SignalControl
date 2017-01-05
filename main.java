@@ -5,13 +5,13 @@ class Simulation {
 
 	public static int MAXSTEP = 50000;
 	public static int MAXCAR = 5000;
-	public static int NPS = 1; //毎step何台生成するか
 	public static boolean PRINT_CAR = false;
 	public static boolean PRINT_SIG = false;
 	public static boolean PRINT_DATA = true;
 	// 自動車生成確率の比
 	// 1: 横方向の交通量多　2: 差がない　3: 縦方向の交通量多
 	public static int PROBABILITY = 1;
+	public static double prov = 0.0; //車の発生確率
 
 	public static void main(String args[]){
 
@@ -23,8 +23,12 @@ class Simulation {
 
 		// 車の生成
 		Car[] c = new Car[MAXCAR];
-		for(int i=0; i<MAXCAR; i++)
-			c[i] = new Car(i, i/NPS); // 第二引数：何step目に生成されるか
+		int provStep = 0;
+		for(int i=0; i<MAXCAR; i++){
+			if(i%1000==0) prov+=0.0005; // 1000step毎に0.05%増やす
+			provStep+=(int)(1/prov);
+			c[i] = new Car(i, provStep); // 第二引数：何step目に生成されるか
+		}
 
 		// セルに車がいるか情報を取り扱う配列
 		Cell[][] cell = new Cell[81][];
@@ -114,18 +118,19 @@ class Simulation {
 
 	// 実験結果の記録
 	public static void record(Car c, int step) {
-		Data d = new Data(c.id, step, c.waitingLength1, c.waitingLength2);
-		System.out.printf("%d,%d,%d,%d\n",d.id,d.es,d.w1,d.w2);
+		Data d = new Data(c.id, c.genStep, step, c.waitingLength1, c.waitingLength2);
+		System.out.printf("%d,%d,%d,%d,%d\n",d.id,d.gs,d.es,d.w1,d.w2);
 	}
 
 }
 // end Simulation
 
 class Data {
-	int id, es, w1, w2;
+	int id, gs, es, w1, w2;
 
-	public Data(int id, int endStep, int waitingLength1, int waitingLength2){
+	public Data(int id, int genStep, int endStep, int waitingLength1, int waitingLength2){
 		this.id = id;
+		this.gs = genStep;
 		this.es = endStep;
 		this.w1 = waitingLength1;
 		this.w2 = waitingLength2;
