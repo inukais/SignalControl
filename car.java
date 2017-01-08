@@ -11,6 +11,10 @@ class Car {
 	int genStep = 0; // 何step目に生成されるか
 	boolean isGenerated = false;
 	boolean isArrived = false;
+	int PRB0 = 5;//左端
+	int PRB1 = 3;//右端
+	int PRB2 = 1;//上下端
+	int PRB = PRB0+PRB1+PRB2;
 
 	// 測定に用いる変数
 	boolean expedSec = false; //1つ目の交差点を通過したか
@@ -94,11 +98,17 @@ class Car {
 
 		// 起点p1と終点p2を決定する(選ぶ)
 		Random r = new Random();
-		int p1 = r.nextInt(8);
-		int p2 = r.nextInt(8);
-		while (p1 == p2) p2 = r.nextInt(8);
+		int p1,p2,temp;
+
+		temp = r.nextInt(PRB);
+		if(temp<PRB0) p1 = 0; //左端が起点
+		else if(temp<PRB0+PRB1) p1 = 1; //右端が起点
+		else p1 = r.nextInt(6)+2; //上下が起点。2~7の範囲で
+
+		do p2 = r.nextInt(8); while (p1 == p2);
 		this.dep = this.position = point[p1];
 		this.arr = point[p2];
+		//System.out.printf("gen %d,%d\n",p1,p2);
 
 		// ルートの生成
 		this.route[0] = this.dep;

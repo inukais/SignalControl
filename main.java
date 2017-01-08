@@ -3,15 +3,15 @@ import java.util.*;
 
 class Simulation {
 
-	public static int MAXSTEP = 50000;
-	public static int MAXCAR = 5000;
+	public static int MAXSTEP = 300000;
+	public static int MAXCAR = 25000;
 	public static boolean PRINT_CAR = false;
 	public static boolean PRINT_SIG = false;
 	public static boolean PRINT_DATA = true;
 	// 自動車生成確率の比
 	// 1: 横方向の交通量多　2: 差がない　3: 縦方向の交通量多
 	public static int PROBABILITY = 1;
-	public static double prov = 0.0; //車の発生確率
+	public static double prob = 0.0; //車の発生確率
 
 	public static void main(String args[]){
 
@@ -23,12 +23,18 @@ class Simulation {
 
 		// 車の生成
 		Car[] c = new Car[MAXCAR];
-		int provStep = 0;
-		for(int i=0; i<MAXCAR; i++){
-			if(i%1000==0) prov+=0.0005; // 1000step毎に0.05%増やす
-			provStep+=(int)(1/prov);
-			c[i] = new Car(i, provStep); // 第二引数：何step目に生成されるか
+		int probStep=0; //仮のstep
+		Random r = new Random();
+		int count1=0, count2=0;
+
+		for(int i=0; i<MAXCAR; probStep++){
+			if(probStep%1000==0) prob+=0.0005; // 1000step毎に0.05%増やす
+			if(r.nextDouble()<prob) {
+				c[i] = new Car(i++, probStep); // 第二引数：何step目に生成されるか
+				count1++;
+			} else count2++;
 		}
+		//System.out.printf("gen:%d, nogen:%d\n",count1,count2);
 
 		// セルに車がいるか情報を取り扱う配列
 		Cell[][] cell = new Cell[81][];
